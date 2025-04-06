@@ -68,9 +68,20 @@ export class DappierMCPClient {
   
   /**
    * Get latest news from Dappier
+   * @param limit The maximum number of news items to return
+   * @param searchQuery Optional search query to filter news by topic or content
    */
-  static async getLatestNews(limit: number = 10): Promise<News[]> {
-    const query = `Get the latest ${limit} financial news articles for Indian markets`;
+  static async getLatestNews(limit: number = 10, searchQuery?: string): Promise<News[]> {
+    // Default query if none provided - use "indian financial news and reports" as default
+    const defaultQuery = `Get the latest ${limit} indian financial news and reports`;
+    
+    // If a search query is provided, use it to filter the news
+    const query = searchQuery 
+      ? `Get the latest ${limit} financial news articles about ${searchQuery} from Indian markets`
+      : defaultQuery;
+      
+    console.log("Querying Dappier API for news with query:", query);
+    
     const response = await this.makeRequest<any>(query);
     
     // Parse and convert the response to our News format

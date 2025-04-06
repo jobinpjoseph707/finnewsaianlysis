@@ -28,16 +28,29 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export default function News() {
   const { useNews, isDappierMCP } = useMCP();
-  const { data: newsItems = [], isLoading: isNewsLoading, isError: isNewsError } = useNews(10);
-  const { data: sentimentData, isLoading: isSentimentLoading } = useSentiment();
   const [searchTerm, setSearchTerm] = React.useState("");
+  const [dappierSearchTerm, setDappierSearchTerm] = React.useState("indian financial news and reports");
   const [category, setCategory] = React.useState("all");
+  
+  // Pass the search term to the API query if using Dappier
+  const { data: newsItems = [], isLoading: isNewsLoading, isError: isNewsError, refetch } = 
+    useNews(10, isDappierMCP ? dappierSearchTerm : undefined);
+  const { data: sentimentData, isLoading: isSentimentLoading } = useSentiment();
   
   const isLoading = isNewsLoading || isSentimentLoading;
   
-  // Filter news items based on search term and category
+  // Handle search submit for Dappier API
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isDappierMCP && searchTerm.trim()) {
+      setDappierSearchTerm(searchTerm.trim());
+    }
+  };
+  
+  // Filter news items based on search term (client-side filter if not using Dappier) and category
   const filteredNews = newsItems.filter(news => {
-    const matchesSearch = 
+    // If using Dappier, don't filter by search term since it's done on the API side
+    const matchesSearch = isDappierMCP ? true :
       news.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
       (news.summary && news.summary.toLowerCase().includes(searchTerm.toLowerCase()));
     
@@ -230,16 +243,29 @@ export default function News() {
               </CardTitle>
               
               <div className="flex items-center gap-2">
-                <div className="relative">
-                  <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input 
-                    type="search" 
-                    placeholder="Search news..." 
-                    className="pl-8 w-full md:w-60"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                </div>
+                <form onSubmit={handleSearchSubmit} className="relative flex items-center gap-2">
+                  <div className="relative">
+                    <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input 
+                      type="search" 
+                      placeholder="Search news..." 
+                      className="pl-8 w-full md:w-60"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                  </div>
+                  
+                  {isDappierMCP && (
+                    <Button 
+                      type="submit" 
+                      size="sm" 
+                      variant="secondary"
+                      className="flex items-center"
+                    >
+                      Search API
+                    </Button>
+                  )}
+                </form>
                 
                 <Tabs value={category} onValueChange={setCategory} className="w-full md:w-auto">
                   <TabsList>
@@ -250,6 +276,14 @@ export default function News() {
                   </TabsList>
                 </Tabs>
               </div>
+              
+              {isDappierMCP && dappierSearchTerm && (
+                <div className="mt-2 text-sm text-gray-500">
+                  <p>
+                    Currently searching Dappier API for: <span className="font-medium">{dappierSearchTerm}</span>
+                  </p>
+                </div>
+              )}
             </div>
           </CardHeader>
           <CardContent className="p-0">

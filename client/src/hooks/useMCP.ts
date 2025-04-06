@@ -129,19 +129,23 @@ export function useMCP() {
     return { data, ...rest };
   };
   
-  // Get news
-  const useNews = (limit: number = 10) => {
+  // Get news with optional search query
+  const useNews = (limit: number = 10, searchQuery?: string) => {
     const { data, ...rest } = useQuery<News[]>({
-      queryKey: ['news', limit],
+      queryKey: ['news', limit, searchQuery],
       queryFn: async () => {
         if (isDappierMCP) {
           // This is our primary use case - get financial news from Dappier
-          return await DappierMCPClient.getLatestNews(limit);
+          return await DappierMCPClient.getLatestNews(limit, searchQuery);
         } else if (isExternalMCP) {
           return await ExternalMCPClient.getLatestNews(limit);
         } else {
           // Fall back to the local API
-          return await fetch(`/api/mcp/news?limit=${limit}`).then(res => res.json());
+          const queryParams = new URLSearchParams({ limit: limit.toString() });
+          if (searchQuery) {
+            queryParams.append('query', searchQuery);
+          }
+          return await fetch(`/api/mcp/news?${queryParams}`).then(res => res.json());
         }
       },
       enabled: !isLoading,
