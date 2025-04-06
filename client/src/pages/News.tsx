@@ -14,7 +14,8 @@ import {
   TrendingDown, 
   Clock,
   ArrowRight,
-  ExternalLink
+  ExternalLink,
+  AlertCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,87 +23,40 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { useSentiment } from "@/hooks/useSentiment";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useMCP } from "@/hooks/useMCP";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export default function News() {
-  const { data: sentimentData, isLoading } = useSentiment();
+  const { useNews, isDappierMCP } = useMCP();
+  const { data: newsItems = [], isLoading: isNewsLoading, isError: isNewsError } = useNews(10);
+  const { data: sentimentData, isLoading: isSentimentLoading } = useSentiment();
   const [searchTerm, setSearchTerm] = React.useState("");
   const [category, setCategory] = React.useState("all");
   
-  // Sample news data
-  const newsItems = [
-    {
-      id: 1,
-      title: "RBI keeps repo rate unchanged at 6.5% for 6th time in a row",
-      source: "Economic Times",
-      date: "2 hours ago",
-      category: "Economy",
-      sentiment: "Neutral",
-      impact: "Medium",
-      summary: "The Reserve Bank of India's Monetary Policy Committee (MPC) decided to keep the repo rate unchanged at 6.5% for the sixth consecutive time while maintaining its stance of withdrawal of accommodation.",
-      url: "#"
-    },
-    {
-      id: 2,
-      title: "IT companies likely to report muted Q1, analysts expect recovery later in FY2025",
-      source: "LiveMint",
-      date: "5 hours ago",
-      category: "Technology",
-      sentiment: "Neutral",
-      impact: "Medium",
-      summary: "Indian IT services companies are expected to report muted results for Q1FY25, though analysts remain optimistic about growth recovery in the second half of the fiscal year as clients increase technology spending.",
-      url: "#"
-    },
-    {
-      id: 3,
-      title: "Adani Group stocks surge on clean chit from SEBI in some cases",
-      source: "Business Standard",
-      date: "1 day ago",
-      category: "Markets",
-      sentiment: "Positive",
-      impact: "High",
-      summary: "Shares of Adani Group companies surged after the market regulator SEBI gave a clean chit to the conglomerate in some of the allegations made by US short-seller Hindenburg Research.",
-      url: "#"
-    },
-    {
-      id: 4,
-      title: "RBI data shows household debt rising to concerning levels post-pandemic",
-      source: "Mint",
-      date: "2 days ago",
-      category: "Economy",
-      sentiment: "Negative",
-      impact: "Medium",
-      summary: "Reserve Bank of India data indicates household indebtedness has increased significantly in the post-COVID period, raising concerns about financial stability and consumption patterns.",
-      url: "#"
-    },
-    {
-      id: 5,
-      title: "Indian pharma exports expected to grow 12% in FY25 despite global headwinds",
-      source: "Financial Express",
-      date: "3 days ago",
-      category: "Pharma",
-      sentiment: "Positive",
-      impact: "Medium",
-      summary: "Indian pharmaceutical exports are projected to grow at 12% in FY25, reaching approximately $30 billion despite regulatory challenges in global markets and pricing pressures.",
-      url: "#"
-    },
-    {
-      id: 6,
-      title: "Government approves 75 semiconductor design proposals",
-      source: "Business Today",
-      date: "3 days ago",
-      category: "Technology",
-      sentiment: "Positive",
-      impact: "High",
-      summary: "The Indian government has approved 75 semiconductor design proposals under its Design Linked Incentive (DLI) scheme with an outlay of ₹2,600 crore aimed at building a domestic semiconductor ecosystem.",
-      url: "#"
-    }
-  ];
+  const isLoading = isNewsLoading || isSentimentLoading;
   
   // Filter news items based on search term and category
   const filteredNews = newsItems.filter(news => {
-    const matchesSearch = news.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          news.summary.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = category === "all" || news.category.toLowerCase() === category.toLowerCase();
+    const matchesSearch = 
+      news.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      (news.summary && news.summary.toLowerCase().includes(searchTerm.toLowerCase()));
+    
+    // For category matching, check sectors if available
+    const matchesCategory = category === "all" || (() => {
+      if (news.sectors) {
+        // Handle sectors as array or string
+        if (Array.isArray(news.sectors)) {
+          return news.sectors.some(sector => 
+            typeof sector === 'string' && sector.toLowerCase() === category.toLowerCase()
+          );
+        } else if (typeof news.sectors === 'string') {
+          return news.sectors.toLowerCase() === category.toLowerCase();
+        }
+      }
+      // Default to true for "Economy" category since financial news is mostly economic
+      return category.toLowerCase() === "economy";
+    })();
+    
     return matchesSearch && matchesCategory;
   });
 
@@ -184,6 +138,42 @@ export default function News() {
               </CardContent>
             </Card>
           </div>
+        </main>
+      </div>
+    );
+  }
+  
+  if (isNewsError) {
+    return (
+      <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900">
+        <Header />
+        <main className="container mx-auto px-4 py-6 flex-1">
+          <h1 className="text-3xl font-bold mb-6 flex items-center">
+            <Newspaper className="mr-2 h-8 w-8 text-primary" />
+            Financial News Analysis
+          </h1>
+          
+          <Alert variant="destructive" className="mb-6">
+            <AlertCircle className="h-4 w-4 mr-2" />
+            <AlertTitle>Error Fetching News</AlertTitle>
+            <AlertDescription>
+              {isDappierMCP 
+                ? "Could not retrieve financial news from Dappier API. Please check your API configuration in Settings." 
+                : "Could not retrieve news data. Please try again later."}
+            </AlertDescription>
+          </Alert>
+          
+          <Card className="shadow-sm">
+            <CardContent className="p-8 text-center">
+              <p className="text-gray-500">No news available at this time.</p>
+              <Button 
+                className="mt-4" 
+                onClick={() => window.location.reload()}
+              >
+                Retry
+              </Button>
+            </CardContent>
+          </Card>
         </main>
       </div>
     );
@@ -275,10 +265,24 @@ export default function News() {
                           <span>•</span>
                           <div className="flex items-center">
                             <Clock className="h-3 w-3 mr-1" />
-                            {news.date}
+                            {news.publishedAt 
+                              ? new Date(news.publishedAt).toLocaleDateString('en-US', {
+                                  day: 'numeric',
+                                  month: 'short',
+                                  year: 'numeric'
+                              })
+                              : "Recently"
+                            }
                           </div>
-                          <span>•</span>
-                          <span>{news.category}</span>
+                          {news.sectors && (
+                            <>
+                              <span>•</span>
+                              <span>{Array.isArray(news.sectors) 
+                                ? news.sectors[0]
+                                : (typeof news.sectors === 'string' ? news.sectors : 'General')
+                              }</span>
+                            </>
+                          )}
                         </div>
                         <p className="text-gray-600 mb-3">{news.summary}</p>
                         <div className="flex flex-wrap gap-2">
@@ -287,9 +291,17 @@ export default function News() {
                         </div>
                       </div>
                       <div className="flex-shrink-0 pt-2 md:pt-0">
-                        <Button variant="outline" size="sm" className="text-primary flex items-center">
-                          Read More <ExternalLink className="ml-1 h-3 w-3" />
-                        </Button>
+                        {news.url ? (
+                          <a href={news.url} target="_blank" rel="noopener noreferrer">
+                            <Button variant="outline" size="sm" className="text-primary flex items-center">
+                              Read More <ExternalLink className="ml-1 h-3 w-3" />
+                            </Button>
+                          </a>
+                        ) : (
+                          <Button variant="outline" size="sm" className="text-primary flex items-center" disabled>
+                            No Source <ExternalLink className="ml-1 h-3 w-3" />
+                          </Button>
+                        )}
                       </div>
                     </div>
                   </div>

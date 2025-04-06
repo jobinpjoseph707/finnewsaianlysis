@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { checkDappierConfiguration } from '@/lib/dappier-mcp-client';
+import { useState, useEffect } from "react";
+import { DappierMCPClient, checkDappierConfiguration } from "@/lib/dappier-mcp-client";
 
 /**
  * Custom hook to check connection status to Dappier API
@@ -8,34 +8,27 @@ import { checkDappierConfiguration } from '@/lib/dappier-mcp-client';
 export function useDappierConnection() {
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
 
   const checkConnection = async () => {
     setIsLoading(true);
-    setError(null);
     try {
-      const connected = await checkDappierConfiguration();
-      setIsConnected(connected);
-      return connected;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Failed to connect to Dappier API";
-      setError(errorMessage);
+      const isConfigured = await checkDappierConfiguration();
+      setIsConnected(isConfigured);
+    } catch (error) {
+      console.error("Error checking Dappier status:", error);
       setIsConnected(false);
-      return false;
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    // Check connection status on mount
     checkConnection();
   }, []);
 
   return {
     isConnected,
     isLoading,
-    error,
     checkConnection
   };
 }

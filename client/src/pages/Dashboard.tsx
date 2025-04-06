@@ -7,7 +7,7 @@ import SentimentAnalysis from "@/components/dashboard/SentimentAnalysis";
 import PerformanceTracking from "@/components/dashboard/PerformanceTracking";
 import MCPStatus from "@/components/dashboard/MCPStatus";
 import { MCPConnectionStatus } from "@/components/dashboard/MCPConnectionStatus";
-import { DappierConnectionStatus } from "@/components/dashboard/DappierConnectionStatus";
+import DappierConnectionStatus from "@/components/dashboard/DappierConnectionStatus";
 import { 
   CalendarDays, 
   RefreshCw, 
