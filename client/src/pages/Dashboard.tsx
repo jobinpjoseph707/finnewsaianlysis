@@ -6,6 +6,7 @@ import AIStrategies from "@/components/dashboard/AIStrategies";
 import SentimentAnalysis from "@/components/dashboard/SentimentAnalysis";
 import PerformanceTracking from "@/components/dashboard/PerformanceTracking";
 import MCPStatus from "@/components/dashboard/MCPStatus";
+import { MCPConnectionStatus } from "@/components/dashboard/MCPConnectionStatus";
 import { 
   CalendarDays, 
   RefreshCw, 
@@ -176,6 +177,11 @@ export default function Dashboard() {
                 </div>
               ))}
             </div>
+          </div>
+          
+          {/* MCP Connection Status */}
+          <div className="mb-6">
+            <MCPConnectionStatus />
           </div>
           
           {/* Market Overview */}

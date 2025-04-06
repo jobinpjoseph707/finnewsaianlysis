@@ -1,5 +1,6 @@
 import React from "react";
 import Header from "@/components/layouts/Header";
+import { MCPConfiguration } from "@/components/settings/MCPConfiguration";
 import { 
   Card, 
   CardContent, 
@@ -377,12 +378,16 @@ export default function Settings() {
                 </Card>
               </TabsContent>
               
-              <TabsContent value="mcp" className="m-0">
+              <TabsContent value="mcp" className="m-0 space-y-6">
+                {/* External MCP Configuration */}
+                <MCPConfiguration />
+                
+                {/* Local MCP Status */}
                 <Card className="shadow-sm">
                   <CardHeader>
-                    <CardTitle>Model Context Protocol Status</CardTitle>
+                    <CardTitle>Local MCP Status</CardTitle>
                     <CardDescription>
-                      View the status of MCP services and components
+                      Status of local MCP services and components
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
