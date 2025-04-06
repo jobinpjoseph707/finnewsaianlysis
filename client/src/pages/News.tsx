@@ -35,6 +35,13 @@ export default function News() {
   // Pass the search term to the API query if using Dappier
   const { data: newsItems = [], isLoading: isNewsLoading, isError: isNewsError, refetch } = 
     useNews(10, isDappierMCP ? dappierSearchTerm : undefined);
+  
+  // Debug: Log the news data to console
+  React.useEffect(() => {
+    console.log("News data:", newsItems);
+    console.log("Using Dappier MCP:", isDappierMCP);
+    console.log("Current search term:", dappierSearchTerm);
+  }, [newsItems, isDappierMCP, dappierSearchTerm]);
   const { data: sentimentData, isLoading: isSentimentLoading } = useSentiment();
   
   const isLoading = isNewsLoading || isSentimentLoading;

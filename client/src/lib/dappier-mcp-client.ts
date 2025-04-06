@@ -121,16 +121,150 @@ export class DappierMCPClient {
         const newsItems = [];
         
         // Check for markdown-style numbered list items with titles in bold/links
-        const newsRegex = /\d+\.\s+\*\*\[(.*?)\]\((.*?)\)\*\*\s+(.*?)(?=\d+\.\s+\*\*|\n*$)/gs;
-        const matches = [...messageText.matchAll(newsRegex)];
+        // We need to handle various formats we've seen in the API responses
+        
+        // First try the original format: numbered list with bold links
+        let newsRegex = /\d+\.\s+\*\*\[(.*?)\]\((.*?)\)\*\*\s+(.*?)(?=\d+\.\s+\*\*|\n*$)/gs;
+        let matches = [...messageText.matchAll(newsRegex)];
+        
+        // If no matches, try another common format: numbered list with bold titles
+        if (matches.length === 0) {
+          newsRegex = /\d+\.\s+\*\*(.*?)\*\*\s+(.*?)(?=\d+\.\s+\*\*|\n*$)/gs;
+          matches = [...messageText.matchAll(newsRegex)];
+        }
+        
+        // If no matches, try a third pattern specifically for the format we've seen in the example:
+        // numbered list with bold titles not followed by other bold items
+        if (matches.length === 0) {
+          newsRegex = /\d+\.\s+\*\*(.*?)\*\*\s+(.*?)(?=\d+\.\s+|\n*$)/gs;
+          matches = [...messageText.matchAll(newsRegex)];
+        }
+        
+        // If still no matches, try a more flexible format that looks for any numbered list items
+        if (matches.length === 0) {
+          newsRegex = /\d+\.\s+(.*?)(?=\d+\.\s+|\n*$)/gs;
+          matches = [...messageText.matchAll(newsRegex)];
+        }
+        
+        // If still no matches, and the response contains the specific pattern we've seen in the examples,
+        // let's try to manually extract the news items
+        if (matches.length === 0 && messageText.includes("Here's the latest scoop on Indian financial news")) {
+          console.log("Trying special extraction for Indian financial news format");
+          
+          // This is a very specific case for the format in the example
+          // Look for numbered items with an asterisk and line breaks
+          const newsRegex = /\d+\.\s+\*\*(.*?)\*\*\s+\n\s+.*?\n\s+\*Source:\s+(.*?)\*\s+\n\s+\[Read more\]\((.*?)\)/gm;
+          const newsMatches = [...messageText.matchAll(newsRegex)];
+          
+          if (newsMatches && newsMatches.length > 0) {
+            console.log(`Found ${newsMatches.length} news items using the special format regex`);
+            
+            // Convert to our match format
+            matches = newsMatches.map((match) => {
+              const title = match[1];
+              const source = match[2];
+              const url = match[3];
+              
+              // Extract the full news item text
+              const fullItem = match[0];
+              
+              // Create a match object that looks like what our other regexes produce
+              const formattedMatch: any = [];
+              formattedMatch.index = match.index;
+              formattedMatch.input = match.input;
+              formattedMatch[0] = fullItem;
+              formattedMatch[1] = title;
+              formattedMatch[2] = url;
+              formattedMatch[3] = `Source: ${source}`;
+              
+              return formattedMatch;
+            });
+          } else {
+            // If that didn't work, fall back to the generic approach
+            console.log("Falling back to generic approach for split by numbered items");
+            const split = messageText.split(/\d+\.\s+/);
+            // The first element is usually an intro text, so we'll skip it
+            if (split.length > 1) {
+              // Create artificial matches with the content
+              matches = split.slice(1).map((item, i) => {
+                // Create a match object with the content
+                const match: any = []; 
+                match.index = 0;
+                match.input = item;
+                match[0] = `${i+1}. ${item}`; // Full match
+                match[1] = item; // Group 1 (the content)
+                return match;
+              });
+              console.log(`Extracted ${matches.length} news items manually`);
+            }
+          }
+        }
         
         console.log(`Found ${matches.length} news items using regex pattern`);
         
+        // Additional logging to help debug
+        if (matches.length === 0) {
+          // Log the first part of the message to see what we're dealing with
+          console.log("Message format sample:", messageText.substring(0, 200));
+        }
+        
         if (matches.length > 0) {
           return matches.slice(0, limit).map((match, index) => {
-            const title = match[1] || "Financial News Update";
-            const url = match[2] || null;
-            const summary = match[3].trim() || "No summary available";
+            // For our different regex patterns, we need to handle the groups differently
+            let title = "Financial News Update";
+            let url = null;
+            let summary = "";
+            
+            // Log each match for debugging
+            console.log(`Match ${index}:`, match);
+            
+            // Different handling based on which regex matched
+            if (match.length >= 4) {
+              // First regex: \d+\.\s+\*\*\[(.*?)\]\((.*?)\)\*\*\s+(.*?)
+              title = match[1] || "Financial News Update";
+              url = match[2] || null;
+              summary = match[3] ? match[3].trim() : "No summary available";
+            } else if (match.length >= 3) {
+              // Second regex: \d+\.\s+\*\*(.*?)\*\*\s+(.*?)
+              title = match[1] || "Financial News Update";
+              summary = match[2] ? match[2].trim() : "No summary available";
+              
+              // Try to extract URL from summary if available
+              const urlMatch = summary.match(/\[Read more\]\((.*?)\)/);
+              if (urlMatch && urlMatch[1]) {
+                url = urlMatch[1];
+              }
+            } else if (match.length >= 2) {
+              // Third regex: \d+\.\s+(.*?)
+              const fullText = match[1] || "";
+              
+              // Try to extract title and URL
+              if (fullText.includes("**")) {
+                // Try to extract title between ** markers
+                const boldMatch = fullText.match(/\*\*(.*?)\*\*/);
+                if (boldMatch && boldMatch[1]) {
+                  title = boldMatch[1];
+                  summary = fullText.replace(/\*\*(.*?)\*\*/, "").trim();
+                } else {
+                  summary = fullText;
+                }
+              } else {
+                // Just take the first sentence as title
+                const parts = fullText.split(/\.\s+/);
+                if (parts.length > 1) {
+                  title = parts[0];
+                  summary = parts.slice(1).join(". ");
+                } else {
+                  summary = fullText;
+                }
+              }
+              
+              // Try to extract URL if available
+              const urlMatch = summary.match(/\[Read more\]\((.*?)\)/) || summary.match(/\((https?:\/\/[^\s)]+)\)/);
+              if (urlMatch && urlMatch[1]) {
+                url = urlMatch[1];
+              }
+            }
             
             // Try to extract the source and date from the summary
             let source = "Dappier News";
