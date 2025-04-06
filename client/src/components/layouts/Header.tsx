@@ -191,15 +191,13 @@ export default function Header() {
           <ul className="flex overflow-x-auto hide-scrollbar">
             {navItems.map((item) => (
               <li key={item.href}>
-                <Link href={item.href}>
-                  <a className={`flex items-center whitespace-nowrap px-4 py-2 border-b-2 ${
-                    location === item.href 
-                      ? 'border-white font-medium' 
-                      : 'border-transparent hover:border-white/50'
-                  }`}>
-                    {item.icon}
-                    {item.label}
-                  </a>
+                <Link href={item.href} className={`flex items-center whitespace-nowrap px-4 py-2 border-b-2 ${
+                  location === item.href 
+                    ? 'border-white font-medium' 
+                    : 'border-transparent hover:border-white/50'
+                }`}>
+                  {item.icon}
+                  {item.label}
                 </Link>
               </li>
             ))}
