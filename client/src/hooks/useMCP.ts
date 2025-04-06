@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ExternalMCPClient, checkMCPConfiguration } from '@/lib/external-mcp-client';
+import { DappierMCPClient, checkDappierConfiguration } from '@/lib/dappier-mcp-client';
 import type { 
   MarketData, 
   Strategy, 
@@ -16,17 +17,29 @@ import type {
  */
 export function useMCP() {
   const [isExternalMCP, setIsExternalMCP] = useState<boolean>(false);
+  const [isDappierMCP, setIsDappierMCP] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   
   // Check if external MCP client is configured on mount
   useEffect(() => {
     const checkConfiguration = async () => {
       try {
-        const isConfigured = await checkMCPConfiguration();
-        setIsExternalMCP(isConfigured);
+        // First check if Dappier is configured
+        const isDappierConfigured = await checkDappierConfiguration();
+        setIsDappierMCP(isDappierConfigured);
+        
+        if (isDappierConfigured) {
+          // If Dappier is configured, we're using an external MCP
+          setIsExternalMCP(true);
+        } else {
+          // If Dappier is not configured, check if the regular external MCP is configured
+          const isRegularMcpConfigured = await checkMCPConfiguration();
+          setIsExternalMCP(isRegularMcpConfigured);
+        }
       } catch (error) {
         console.error("Error checking MCP configuration:", error);
         setIsExternalMCP(false);
+        setIsDappierMCP(false);
       } finally {
         setIsLoading(false);
       }
@@ -40,11 +53,13 @@ export function useMCP() {
     const { data, ...rest } = useQuery<MarketData[]>({
       queryKey: ['market-data'],
       queryFn: async () => {
-        if (isExternalMCP) {
+        if (isDappierMCP) {
+          return await DappierMCPClient.getMarketData();
+        } else if (isExternalMCP) {
           return await ExternalMCPClient.getMarketData();
         } else {
           // Fall back to the local API
-          return await fetch('/api/market-data').then(res => res.json());
+          return await fetch('/api/mcp/market-data').then(res => res.json());
         }
       },
       enabled: !isLoading,
@@ -58,11 +73,14 @@ export function useMCP() {
     const { data, ...rest } = useQuery<Strategy[]>({
       queryKey: ['strategies'],
       queryFn: async () => {
-        if (isExternalMCP) {
+        if (isDappierMCP) {
+          // For now, Dappier doesn't provide strategies, so we'll use local API
+          return await fetch('/api/mcp/strategies').then(res => res.json());
+        } else if (isExternalMCP) {
           return await ExternalMCPClient.getStrategies();
         } else {
           // Fall back to the local API
-          return await fetch('/api/strategies').then(res => res.json());
+          return await fetch('/api/mcp/strategies').then(res => res.json());
         }
       },
       enabled: !isLoading,
@@ -76,11 +94,13 @@ export function useMCP() {
     const { data, ...rest } = useQuery<any>({
       queryKey: ['sentiment'],
       queryFn: async () => {
-        if (isExternalMCP) {
+        if (isDappierMCP) {
+          return await DappierMCPClient.getSentimentAnalysis();
+        } else if (isExternalMCP) {
           return await ExternalMCPClient.getSentimentAnalysis();
         } else {
           // Fall back to the local API
-          return await fetch('/api/sentiment').then(res => res.json());
+          return await fetch('/api/mcp/sentiment').then(res => res.json());
         }
       },
       enabled: !isLoading,
@@ -94,11 +114,13 @@ export function useMCP() {
     const { data, ...rest } = useQuery<SectorSentiment>({
       queryKey: ['sentiment', 'sector', sector],
       queryFn: async () => {
-        if (isExternalMCP) {
+        if (isDappierMCP) {
+          return await DappierMCPClient.getSectorSentiment(sector);
+        } else if (isExternalMCP) {
           return await ExternalMCPClient.getSectorSentiment(sector);
         } else {
           // Fall back to the local API
-          return await fetch(`/api/sentiment/sector/${sector}`).then(res => res.json());
+          return await fetch(`/api/mcp/sentiment/sector/${sector}`).then(res => res.json());
         }
       },
       enabled: !isLoading && !!sector,
@@ -112,11 +134,14 @@ export function useMCP() {
     const { data, ...rest } = useQuery<News[]>({
       queryKey: ['news', limit],
       queryFn: async () => {
-        if (isExternalMCP) {
+        if (isDappierMCP) {
+          // This is our primary use case - get financial news from Dappier
+          return await DappierMCPClient.getLatestNews(limit);
+        } else if (isExternalMCP) {
           return await ExternalMCPClient.getLatestNews(limit);
         } else {
           // Fall back to the local API
-          return await fetch(`/api/news?limit=${limit}`).then(res => res.json());
+          return await fetch(`/api/mcp/news?limit=${limit}`).then(res => res.json());
         }
       },
       enabled: !isLoading,
@@ -130,11 +155,13 @@ export function useMCP() {
     const { data, ...rest } = useQuery<McpStatus[]>({
       queryKey: ['mcp-status'],
       queryFn: async () => {
-        if (isExternalMCP) {
+        if (isDappierMCP) {
+          return await DappierMCPClient.getMCPStatus();
+        } else if (isExternalMCP) {
           return await ExternalMCPClient.getMCPStatus();
         } else {
           // Fall back to the local API
-          return await fetch('/api/mcp-status').then(res => res.json());
+          return await fetch('/api/mcp/status').then(res => res.json());
         }
       },
       enabled: !isLoading,
@@ -145,6 +172,7 @@ export function useMCP() {
   
   return {
     isExternalMCP,
+    isDappierMCP,
     isLoading,
     useMarketData,
     useStrategies,

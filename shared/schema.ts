@@ -198,6 +198,9 @@ export const sectorSentiment = pgTable("sector_sentiment", {
   name: text("name").notNull(),
   sentiment: text("sentiment").notNull(), 
   score: real("score").notNull(),
+  newsCount: integer("news_count").default(0),
+  keyTopics: jsonb("key_topics").default([]),
+  confidenceScore: real("confidence_score").default(0.7),
   lastUpdated: timestamp("last_updated").notNull().defaultNow(),
 });
 
@@ -205,6 +208,9 @@ export const insertSectorSentimentSchema = createInsertSchema(sectorSentiment).p
   name: true,
   sentiment: true,
   score: true,
+  newsCount: true,
+  keyTopics: true,
+  confidenceScore: true,
 });
 
 // MCP Status schema

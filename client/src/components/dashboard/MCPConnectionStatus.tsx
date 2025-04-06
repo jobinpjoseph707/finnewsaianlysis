@@ -1,34 +1,47 @@
 import React, { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { CheckCircle, CloudOff, Server, ExternalLink } from "lucide-react";
+import { CheckCircle, CloudOff, Server, ExternalLink, BookOpen } from "lucide-react";
 import { Link } from "wouter";
 import { checkMCPConfiguration } from "@/lib/external-mcp-client";
+import { checkDappierConfiguration } from "@/lib/dappier-mcp-client";
 
 export function MCPConnectionStatus() {
   const [isConnected, setIsConnected] = useState<boolean>(false);
+  const [isDappier, setIsDappier] = useState<boolean>(false);
   const [serverUrl, setServerUrl] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
   
   useEffect(() => {
     const checkConnection = async () => {
       try {
-        const isConfigured = await checkMCPConfiguration();
-        setIsConnected(isConfigured);
+        // First check for Dappier connection
+        const isDappierConfigured = await checkDappierConfiguration();
+        setIsDappier(isDappierConfigured);
         
-        // Get the server URL from localStorage
-        const savedUrl = localStorage.getItem("MCP_SERVER_URL");
-        if (savedUrl) {
-          // Show only the domain part for display
-          try {
-            const url = new URL(savedUrl);
-            setServerUrl(url.hostname);
-          } catch (error) {
-            setServerUrl(savedUrl);
+        if (isDappierConfigured) {
+          setIsConnected(true);
+          setServerUrl("api.dappier.com");
+        } else {
+          // If Dappier is not configured, check regular MCP
+          const isConfigured = await checkMCPConfiguration();
+          setIsConnected(isConfigured);
+          
+          // Get the server URL from localStorage
+          const savedUrl = localStorage.getItem("MCP_SERVER_URL");
+          if (savedUrl) {
+            // Show only the domain part for display
+            try {
+              const url = new URL(savedUrl);
+              setServerUrl(url.hostname);
+            } catch (error) {
+              setServerUrl(savedUrl);
+            }
           }
         }
       } catch (error) {
         console.error("Error checking MCP connection:", error);
         setIsConnected(false);
+        setIsDappier(false);
       } finally {
         setIsLoading(false);
       }
@@ -58,12 +71,20 @@ export function MCPConnectionStatus() {
       <CardContent className="p-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center">
-            <Server className="h-10 w-10 text-primary mr-4" />
+            {isDappier ? (
+              <BookOpen className="h-10 w-10 text-primary mr-4" />
+            ) : (
+              <Server className="h-10 w-10 text-primary mr-4" />
+            )}
             <div>
-              <h3 className="text-lg font-medium">MCP Connection</h3>
+              <h3 className="text-lg font-medium">
+                {isDappier ? "Dappier Financial News MCP" : "MCP Connection"}
+              </h3>
               <p className="text-sm text-gray-500">
                 {isConnected 
-                  ? `Connected to external MCP server: ${serverUrl}`
+                  ? isDappier 
+                    ? `Connected to Dappier Financial API: ${serverUrl}`
+                    : `Connected to external MCP server: ${serverUrl}`
                   : "Using local MCP simulation"
                 }
               </p>
@@ -74,7 +95,9 @@ export function MCPConnectionStatus() {
             {isConnected ? (
               <div className="flex items-center text-green-600">
                 <CheckCircle className="h-5 w-5 mr-2" />
-                <span className="font-medium">Connected</span>
+                <span className="font-medium">
+                  {isDappier ? 'Dappier Connected' : 'Connected'}
+                </span>
               </div>
             ) : (
               <div className="flex items-center text-amber-600">

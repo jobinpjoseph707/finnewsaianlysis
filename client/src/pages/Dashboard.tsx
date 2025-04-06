@@ -7,6 +7,7 @@ import SentimentAnalysis from "@/components/dashboard/SentimentAnalysis";
 import PerformanceTracking from "@/components/dashboard/PerformanceTracking";
 import MCPStatus from "@/components/dashboard/MCPStatus";
 import { MCPConnectionStatus } from "@/components/dashboard/MCPConnectionStatus";
+import { DappierConnectionStatus } from "@/components/dashboard/DappierConnectionStatus";
 import { 
   CalendarDays, 
   RefreshCw, 
@@ -200,10 +201,11 @@ export default function Dashboard() {
               <SentimentAnalysis />
             </div>
             
-            {/* Performance Tracking and MCP Status */}
+            {/* Performance Tracking and Status Components */}
             <div className="space-y-6">
               <PerformanceTracking />
               <MCPStatus />
+              <DappierConnectionStatus />
             </div>
           </div>
         </div>
