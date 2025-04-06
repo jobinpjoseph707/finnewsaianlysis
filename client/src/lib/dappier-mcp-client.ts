@@ -51,6 +51,8 @@ export class DappierMCPClient {
       };
 
       const body = { query };
+      
+      console.log("Making Dappier API request with body:", JSON.stringify(body));
 
       const response = await fetch(this.baseUrl, {
         method: "POST",
@@ -63,7 +65,20 @@ export class DappierMCPClient {
         throw new Error(`Dappier API error (${response.status}): ${errorText}`);
       }
 
-      const data = await response.json();
+      // Get the response as text first
+      const responseText = await response.text();
+      console.log("Dappier API raw response:", responseText.substring(0, 500) + "...");
+      
+      // Parse the response as JSON
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (e) {
+        console.error("Failed to parse Dappier API response as JSON:", e);
+        // If it's not JSON, wrap it in an object with a message property
+        data = { message: responseText };
+      }
+      
       return data;
     } catch (error) {
       console.error("Dappier request failed:", error);
@@ -109,15 +124,25 @@ export class DappierMCPClient {
         const newsRegex = /\d+\.\s+\*\*\[(.*?)\]\((.*?)\)\*\*\s+(.*?)(?=\d+\.\s+\*\*|\n*$)/gs;
         const matches = [...messageText.matchAll(newsRegex)];
         
+        console.log(`Found ${matches.length} news items using regex pattern`);
+        
         if (matches.length > 0) {
           return matches.slice(0, limit).map((match, index) => {
             const title = match[1] || "Financial News Update";
             const url = match[2] || null;
             const summary = match[3].trim() || "No summary available";
             
-            // Extract a news source from the title or URL if possible
+            // Try to extract the source and date from the summary
             let source = "Dappier News";
-            if (url) {
+            let publishedAt = new Date();
+            
+            // Look for Source: and Date: pattern within the summary
+            const sourceMatch = summary.match(/\*Source: (.*?)(?: \| |\*)/);
+            const dateMatch = summary.match(/Date: (.*?)(\*|$)/);
+            
+            if (sourceMatch && sourceMatch[1]) {
+              source = sourceMatch[1].trim();
+            } else if (url) {
               try {
                 const urlObj = new URL(url);
                 source = urlObj.hostname.replace('www.', '');
@@ -126,17 +151,77 @@ export class DappierMCPClient {
               }
             }
             
+            // Extract date if possible
+            if (dateMatch && dateMatch[1]) {
+              const dateStr = dateMatch[1].trim();
+              if (dateStr.includes("days ago") || dateStr.includes("hours ago")) {
+                // This is a relative date, keep the current date
+              } else {
+                try {
+                  publishedAt = new Date(dateStr);
+                } catch (e) {
+                  // If date parsing fails, keep the default date
+                }
+              }
+            }
+            
+            // Try to determine sectors based on the summary content
+            const sectors = [];
+            
+            // Check for common sector keywords in the summary
+            if (summary.toLowerCase().includes("banking") || summary.toLowerCase().includes("finance")) {
+              sectors.push("Finance");
+            }
+            if (summary.toLowerCase().includes("it ") || summary.toLowerCase().includes("tech") || summary.toLowerCase().includes("software")) {
+              sectors.push("Technology");
+            }
+            if (summary.toLowerCase().includes("nifty") || summary.toLowerCase().includes("sensex") || summary.toLowerCase().includes("stocks")) {
+              sectors.push("Markets");
+            }
+            if (summary.toLowerCase().includes("economy") || summary.toLowerCase().includes("gdp") || summary.toLowerCase().includes("inflation")) {
+              sectors.push("Economy");
+            }
+            
+            // If no sectors were detected, add a default
+            if (sectors.length === 0) {
+              sectors.push("Finance");
+            }
+            
+            // Determine sentiment from the content
+            let sentiment = "Neutral";
+            let impact = "Medium";
+            
+            // Simple keyword sentiment detection
+            const positiveKeywords = ["surge", "bullish", "gains", "growth", "recovery", "rise", "higher", "positive", "optimistic"];
+            const negativeKeywords = ["fall", "bearish", "decline", "losses", "fears", "drop", "lower", "negative", "sell-off", "crash"];
+            
+            // Count positive and negative keywords
+            const positiveCount = positiveKeywords.filter(word => summary.toLowerCase().includes(word)).length;
+            const negativeCount = negativeKeywords.filter(word => summary.toLowerCase().includes(word)).length;
+            
+            if (positiveCount > negativeCount) {
+              sentiment = "Positive";
+            } else if (negativeCount > positiveCount) {
+              sentiment = "Negative";
+            }
+            
+            // Determine impact based on keywords
+            const highImpactWords = ["significant", "major", "critical", "big", "huge", "massive", "substantial"];
+            if (highImpactWords.some(word => summary.toLowerCase().includes(word))) {
+              impact = "High";
+            }
+            
             return {
               id: index + 1,
               title,
               summary,
               source,
               url,
-              publishedAt: new Date(),
-              sentiment: "Neutral", // Default since not provided
-              sentimentScore: 0.5,  // Default since not provided
-              impact: "Medium",     // Default since not provided
-              sectors: ["Finance"]  // Default since not provided
+              publishedAt, // Use the extracted date
+              sentiment,
+              sentimentScore: sentiment === "Positive" ? 0.7 : (sentiment === "Negative" ? 0.3 : 0.5),
+              impact,
+              sectors
             };
           });
         }
