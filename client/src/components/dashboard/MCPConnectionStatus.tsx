@@ -83,11 +83,9 @@ export function MCPConnectionStatus() {
               </div>
             )}
             
-            <Link href="/settings">
-              <a className="ml-4 flex items-center text-sm text-blue-600 hover:text-blue-800">
-                <span className="mr-1">Configure</span>
-                <ExternalLink className="h-3 w-3" />
-              </a>
+            <Link href="/settings" className="ml-4 flex items-center text-sm text-blue-600 hover:text-blue-800">
+              <span className="mr-1">Configure</span>
+              <ExternalLink className="h-3 w-3" />
             </Link>
           </div>
         </div>

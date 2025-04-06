@@ -104,7 +104,7 @@ export default function Settings() {
           <div className="lg:col-span-1">
             <Card className="shadow-sm sticky top-6">
               <CardContent className="p-0">
-                <Tabs defaultValue="profile" orientation="vertical" className="w-full">
+                <Tabs defaultValue="mcp" orientation="vertical" className="w-full">
                   <TabsList className="w-full justify-start rounded-none border-r h-full p-0">
                     <div className="flex flex-col w-full gap-1">
                       <TabsTrigger 
@@ -143,7 +143,7 @@ export default function Settings() {
           </div>
           
           <div className="lg:col-span-3">
-            <Tabs defaultValue="profile">
+            <Tabs defaultValue="mcp">
               <TabsContent value="profile" className="m-0">
                 <Card className="shadow-sm">
                   <CardHeader>
@@ -392,7 +392,7 @@ export default function Settings() {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     {mcpStatus.map((service, index) => (
-                      <React.Fragment key={service.name}>
+                      <div key={service.name}>
                         <div className="flex items-start justify-between">
                           <div>
                             <h3 className="font-medium">{service.name}</h3>
@@ -415,7 +415,7 @@ export default function Settings() {
                           </Badge>
                         </div>
                         {index < mcpStatus.length - 1 && <Separator />}
-                      </React.Fragment>
+                      </div>
                     ))}
                     
                     <div className="bg-gray-50 p-4 rounded-lg border mt-4">
