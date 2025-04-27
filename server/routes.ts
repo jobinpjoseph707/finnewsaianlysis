@@ -6,6 +6,9 @@ import {
   marketDataService, 
   getMCPStatus 
 } from "./mcp";
+import { StrategyGenerator } from "./mcp/strategy-generator";
+import { Backtester } from "./mcp/backtester";
+import { AnalyticsService } from "./mcp/analytics";
 import { insertStrategySchema } from "../shared/schema";
 import { z } from "zod";
 
@@ -133,6 +136,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching MCP status:", error);
       res.status(500).json({ message: "Failed to fetch MCP status" });
+    }
+  });
+
+  // --- AI Strategy Generation ---
+  app.post("/api/mcp/strategies/generate", (req, res) => {
+    try {
+      const generator = new StrategyGenerator(sentimentAnalyzer, marketDataService);
+      const aiStrategies = generator.generateStrategies();
+      // Optionally: store in repository or return directly
+      aiStrategies.forEach(s => strategyRepository.createStrategy?.(s));
+      res.status(201).json(aiStrategies);
+    } catch (error) {
+      console.error("Error generating AI strategies:", error);
+      res.status(500).json({ message: "Failed to generate AI strategies" });
+    }
+  });
+
+  // --- Backtesting ---
+  app.post("/api/mcp/strategies/backtest", (req, res) => {
+    try {
+      const { strategy } = req.body;
+      if (!strategy) return res.status(400).json({ message: "Missing strategy in request body" });
+      const historicalData = marketDataService.getHistoricalData?.() || [];
+      const backtester = new Backtester(historicalData);
+      const result = backtester.backtest(strategy);
+      res.json(result);
+    } catch (error) {
+      console.error("Error backtesting strategy:", error);
+      res.status(500).json({ message: "Failed to backtest strategy" });
+    }
+  });
+
+  // --- Analytics ---
+  app.get("/api/mcp/analytics/strategies", (req, res) => {
+    try {
+      const analytics = new AnalyticsService(strategyRepository.getStrategies());
+      const top = analytics.getTopStrategies(5);
+      res.json({ top });
+    } catch (error) {
+      console.error("Error fetching strategy analytics:", error);
+      res.status(500).json({ message: "Failed to fetch analytics" });
     }
   });
 

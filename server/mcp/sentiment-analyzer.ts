@@ -10,6 +10,17 @@ export class SentimentAnalyzer {
   private sectorSentiments: SectorSentiment[] = [];
   private news: News[] = [];
   private sources: string[] = [];
+
+  /**
+   * Get recent news items, sorted by published date (most recent first)
+   * @param limit Number of news items to return (default: 10)
+   */
+  getRecentNews(limit: number = 10): News[] {
+    return this.news
+      .slice()
+      .sort((a, b) => b.publishedAt.getTime() - a.publishedAt.getTime())
+      .slice(0, limit);
+  }
   
   constructor() {
     // Initialize with sample data

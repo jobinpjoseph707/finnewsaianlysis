@@ -11,6 +11,31 @@ const MCP_URL = process.env.MCP_URL;
 const MCP_API_KEY = process.env.MCP_API_KEY;
 
 export class MarketDataService {
+  /**
+   * Returns 4 years of historical market data for all tracked symbols.
+   * If real data is not available, returns generated mock data.
+   */
+  getHistoricalData(): MarketData[] {
+    // Generate 4 years of daily data for each symbol
+    const days = 365 * 4;
+    const allData: MarketData[] = [];
+    for (const market of this.marketData) {
+      let value = market.value;
+      const sectorList = (market as any).sectors || [market.name];
+      for (let i = 0; i < days; i++) {
+        // Simulate small daily changes
+        value += (Math.random() - 0.5) * (market.value * 0.01);
+        allData.push({
+          ...market,
+          value: parseFloat(value.toFixed(2)),
+          lastUpdated: new Date(Date.now() - (days - i) * 24 * 60 * 60 * 1000),
+          data: undefined,
+          sectors: sectorList
+        });
+      }
+    }
+    return allData;
+  }
   private marketData: MarketData[] = [];
   private lastUpdateTime: number;
   

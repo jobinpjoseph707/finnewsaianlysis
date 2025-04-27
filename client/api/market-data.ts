@@ -1,5 +1,5 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import { MarketDataService } from '../server/mcp/market-data';
+import { MarketDataService } from '../lib/market-data';
 
 const marketDataService = new MarketDataService();
 

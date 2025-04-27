@@ -1,5 +1,5 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import { getMCPStatus } from '../server/mcp';
+import { getMCPStatus } from '../lib/mcp';
 
 export default function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === 'GET') {

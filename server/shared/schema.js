@@ -1,8 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.insertMcpStatusSchema = exports.mcpStatus = exports.insertSectorSentimentSchema = exports.sectorSentiment = exports.insertStrategyNewsSchema = exports.strategyNewsRelations = exports.strategyNews = exports.insertNewsSchema = exports.newsRelations = exports.news = exports.insertStrategyMarketDataSchema = exports.strategyMarketDataRelations = exports.strategyMarketData = exports.insertUserStrategySchema = exports.userStrategiesRelations = exports.userStrategies = exports.insertStrategySchema = exports.strategiesRelations = exports.strategies = exports.insertMarketDataSchema = exports.marketDataRelations = exports.marketData = exports.insertUserSchema = exports.usersRelations = exports.users = void 0;
-var pg_core_1 = require("drizzle-orm/pg-core");
-var drizzle_orm_1 = require("drizzle-orm");
+// var pg_core_1 = require("drizzle-orm/pg-core"); // REMOVED: drizzle-orm no longer used
+// var drizzle_orm_1 = require("drizzle-orm"); // REMOVED: drizzle-orm no longer used
 var drizzle_zod_1 = require("drizzle-zod");
 // User schema
 exports.users = (0, pg_core_1.pgTable)("users", {

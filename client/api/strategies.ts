@@ -1,5 +1,5 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import { StrategyRepository } from '../server/mcp/strategy-repository';
+import { StrategyRepository } from '../lib/strategy-repository';
 
 const strategyRepository = new StrategyRepository();
 

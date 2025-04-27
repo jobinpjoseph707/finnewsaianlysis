@@ -1,27 +1,36 @@
-import { pgTable, text, serial, integer, boolean, jsonb, timestamp, real, foreignKey } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
-import { createInsertSchema } from "drizzle-zod";
+// Removed drizzle-zod import. Only using zod for validation now.
 import { z } from "zod";
+// Import schema helpers (replace with your ORM's helpers as needed)
+import {
+  pgTable,
+  serial,
+  integer,
+  text,
+  real,
+  boolean,
+  timestamp,
+  jsonb,
+  relations,
+  one,
+  many
+} from "./schema-helpers";
 
-// User schema
+// All previous drizzle-orm schema code has been removed. Add your new schema/model definitions below using your preferred ORM or approach.
+
+// User schema (define this if not already defined)
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
-  username: text("username").notNull().unique(),
+  username: text("username").notNull(),
   password: text("password").notNull(),
-  name: text("name"),
-  email: text("email"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
+  name: text("name").notNull(),
+  email: text("email").notNull(),
 });
 
-export const usersRelations = relations(users, ({ many }) => ({
-  strategies: many(userStrategies),
-}));
-
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
-  name: true,
-  email: true,
+export const insertUserSchema = z.object({
+  username: z.string(),
+  password: z.string(),
+  name: z.string(),
+  email: z.string().email(),
 });
 
 // Market data schema
@@ -36,17 +45,15 @@ export const marketData = pgTable("market_data", {
   data: jsonb("data"),
 });
 
-export const marketDataRelations = relations(marketData, ({ many }) => ({
-  strategyMarketData: many(strategyMarketData),
-}));
+// Removed: marketDataRelations definition using relations(), since Drizzle ORM is no longer in use and this caused an argument mismatch and ReferenceError.
 
-export const insertMarketDataSchema = createInsertSchema(marketData).pick({
-  symbol: true,
-  name: true,
-  value: true,
-  change: true,
-  changePercent: true,
-  data: true,
+export const insertMarketDataSchema = z.object({
+  symbol: z.string(),
+  name: z.string(),
+  value: z.number(),
+  change: z.number(),
+  changePercent: z.number(),
+  data: z.any().optional()
 });
 
 // Strategy schema
@@ -65,21 +72,17 @@ export const strategies = pgTable("strategies", {
   context: jsonb("context"),
 });
 
-export const strategiesRelations = relations(strategies, ({ many }) => ({
-  userStrategies: many(userStrategies),
-  strategyMarketData: many(strategyMarketData),
-  strategyNews: many(strategyNews),
-}));
+// Removed: strategiesRelations definition using relations(), since Drizzle ORM is no longer in use and this caused an argument mismatch error.
 
-export const insertStrategySchema = createInsertSchema(strategies).pick({
-  title: true,
-  description: true,
-  confidenceLevel: true,
-  riskLevel: true,
-  timeHorizon: true,
-  expectedReturn: true,
-  sectors: true,
-  context: true,
+export const insertStrategySchema = z.object({
+  title: z.string(),
+  description: z.string(),
+  confidenceLevel: z.string(),
+  riskLevel: z.string(),
+  timeHorizon: z.string(),
+  expectedReturn: z.string(),
+  sectors: z.any(),
+  context: z.any().optional(),
 });
 
 // User-Strategy relation (for saved or followed strategies)
@@ -92,7 +95,9 @@ export const userStrategies = pgTable("user_strategies", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const userStrategiesRelations = relations(userStrategies, ({ one }) => ({
+export type RelationHelpers = { one: typeof one; many: typeof many };
+
+export const userStrategiesRelations = relations(userStrategies, ({ one }: RelationHelpers) => ({
   user: one(users, {
     fields: [userStrategies.userId],
     references: [users.id],
@@ -103,11 +108,11 @@ export const userStrategiesRelations = relations(userStrategies, ({ one }) => ({
   }),
 }));
 
-export const insertUserStrategySchema = createInsertSchema(userStrategies).pick({
-  userId: true,
-  strategyId: true,
-  isSaved: true,
-  isFollowing: true,
+export const insertUserStrategySchema = z.object({
+  userId: z.number(),
+  strategyId: z.number(),
+  isSaved: z.boolean().optional(),
+  isFollowing: z.boolean().optional(),
 });
 
 // Strategy-MarketData relation (to track which market data influenced a strategy)
@@ -119,7 +124,7 @@ export const strategyMarketData = pgTable("strategy_market_data", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const strategyMarketDataRelations = relations(strategyMarketData, ({ one }) => ({
+export const strategyMarketDataRelations = relations(strategyMarketData, ({ one }: RelationHelpers) => ({
   strategy: one(strategies, {
     fields: [strategyMarketData.strategyId],
     references: [strategies.id],
@@ -130,10 +135,10 @@ export const strategyMarketDataRelations = relations(strategyMarketData, ({ one 
   }),
 }));
 
-export const insertStrategyMarketDataSchema = createInsertSchema(strategyMarketData).pick({
-  strategyId: true,
-  marketDataId: true,
-  influence: true,
+export const insertStrategyMarketDataSchema = z.object({
+  strategyId: z.number(),
+  marketDataId: z.number(),
+  influence: z.number(),
 });
 
 // News schema
@@ -150,20 +155,18 @@ export const news = pgTable("news", {
   sectors: jsonb("sectors"),
 });
 
-export const newsRelations = relations(news, ({ many }) => ({
-  strategyNews: many(strategyNews),
-}));
+// Removed: newsRelations definition using relations(), since Drizzle ORM is no longer in use and this caused an argument mismatch and ReferenceError.
 
-export const insertNewsSchema = createInsertSchema(news).pick({
-  title: true,
-  summary: true,
-  source: true,
-  url: true,
-  publishedAt: true,
-  sentiment: true,
-  sentimentScore: true,
-  impact: true,
-  sectors: true,
+export const insertNewsSchema = z.object({
+  title: z.string(),
+  summary: z.string(),
+  source: z.string(),
+  url: z.string().optional(),
+  publishedAt: z.any(),
+  sentiment: z.string(),
+  sentimentScore: z.number().optional(),
+  impact: z.string(),
+  sectors: z.any().optional(),
 });
 
 // Strategy-News relation (to track which news influenced a strategy)
@@ -175,7 +178,7 @@ export const strategyNews = pgTable("strategy_news", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const strategyNewsRelations = relations(strategyNews, ({ one }) => ({
+export const strategyNewsRelations = relations(strategyNews, ({ one }: RelationHelpers) => ({
   strategy: one(strategies, {
     fields: [strategyNews.strategyId],
     references: [strategies.id],
@@ -186,10 +189,10 @@ export const strategyNewsRelations = relations(strategyNews, ({ one }) => ({
   }),
 }));
 
-export const insertStrategyNewsSchema = createInsertSchema(strategyNews).pick({
-  strategyId: true,
-  newsId: true,
-  influence: true,
+export const insertStrategyNewsSchema = z.object({
+  strategyId: z.number(),
+  newsId: z.number(),
+  influence: z.number(),
 });
 
 // Sector sentiment schema
@@ -204,13 +207,13 @@ export const sectorSentiment = pgTable("sector_sentiment", {
   lastUpdated: timestamp("last_updated").notNull().defaultNow(),
 });
 
-export const insertSectorSentimentSchema = createInsertSchema(sectorSentiment).pick({
-  name: true,
-  sentiment: true,
-  score: true,
-  newsCount: true,
-  keyTopics: true,
-  confidenceScore: true,
+export const insertSectorSentimentSchema = z.object({
+  name: z.string(),
+  sentiment: z.string(),
+  score: z.number(),
+  newsCount: z.number().optional(),
+  keyTopics: z.any().optional(),
+  confidenceScore: z.number().optional(),
 });
 
 // MCP Status schema
@@ -223,11 +226,11 @@ export const mcpStatus = pgTable("mcp_status", {
   lastUpdated: timestamp("last_updated").notNull().defaultNow(),
 });
 
-export const insertMcpStatusSchema = createInsertSchema(mcpStatus).pick({
-  name: true,
-  status: true,
-  message: true,
-  details: true,
+export const insertMcpStatusSchema = z.object({
+  name: z.string(),
+  status: z.string(),
+  message: z.string().optional(),
+  details: z.any().optional(),
 });
 
 // Export types

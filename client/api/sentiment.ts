@@ -1,5 +1,5 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import { SentimentAnalyzer } from '../server/mcp/sentiment-analyzer';
+import { SentimentAnalyzer } from '../lib/sentiment-analyzer';
 
 const sentimentAnalyzer = new SentimentAnalyzer();
 
