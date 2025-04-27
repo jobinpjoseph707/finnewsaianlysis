@@ -3,16 +3,22 @@
  * Fetches and processes real-time market data from Indian exchanges
  */
 
-import { MarketData, InsertMarketData } from "@shared/schema";
+import { MarketData, InsertMarketData } from "../../shared/schema";
 import { generateRandomId } from "../utils";
+import fetch from "node-fetch";
+
+const MCP_URL = process.env.MCP_URL;
+const MCP_API_KEY = process.env.MCP_API_KEY;
 
 export class MarketDataService {
   private marketData: MarketData[] = [];
   private lastUpdateTime: number;
   
   constructor() {
-    // Initialize with sample market data
-    this.initializeMarketData();
+    // If MCP is not configured, use mock data
+    if (!MCP_URL || !MCP_API_KEY) {
+      this.initializeMarketData();
+    }
     this.lastUpdateTime = Date.now();
   }
   
@@ -57,17 +63,45 @@ export class MarketDataService {
   /**
    * Get all market data
    */
-  getMarketData(): MarketData[] {
+  async getMarketData(): Promise<MarketData[]> {
+    if (MCP_URL && MCP_API_KEY) {
+      try {
+        const res = await fetch(`${MCP_URL}/market-data`, {
+          headers: { 'Authorization': `Bearer ${MCP_API_KEY}` }
+        });
+        if (!res.ok) throw new Error('Failed to fetch market data from MCP');
+        const data = await res.json() as MarketData[];
+        // NOTE: If your MCP API returns date strings, you may want to convert them to Date objects here.
+        return data;
+      } catch (error) {
+        console.error('Error fetching real-time market data from MCP:', error);
+        // fallback to mock data
+        return this.marketData;
+      }
+    }
     return this.marketData;
   }
   
   /**
    * Get market data by symbol
    */
-  getMarketDataBySymbol(symbol: string): MarketData | undefined {
-    return this.marketData.find(market => 
-      market.symbol.toLowerCase() === symbol.toLowerCase()
-    );
+  async getMarketDataBySymbol(symbol: string): Promise<MarketData | undefined> {
+    if (MCP_URL && MCP_API_KEY) {
+      try {
+        const res = await fetch(`${MCP_URL}/market-data/symbol/${encodeURIComponent(symbol)}`, {
+          headers: { 'Authorization': `Bearer ${MCP_API_KEY}` }
+        });
+        if (!res.ok) throw new Error('Failed to fetch market data by symbol from MCP');
+        const data = await res.json() as MarketData;
+        // NOTE: If your MCP API returns date strings, you may want to convert them to Date objects here.
+        return data;
+      } catch (error) {
+        console.error('Error fetching real-time market data by symbol from MCP:', error);
+        // fallback to mock data
+        return this.marketData.find(market => market.symbol.toLowerCase() === symbol.toLowerCase());
+      }
+    }
+    return this.marketData.find(market => market.symbol.toLowerCase() === symbol.toLowerCase());
   }
   
   /**
@@ -77,7 +111,8 @@ export class MarketDataService {
     const newData: MarketData = {
       id: generateRandomId(),
       ...data,
-      lastUpdated: new Date()
+      lastUpdated: new Date(),
+      data: data.data ?? [] // Ensure data is present, fallback to empty array
     };
     
     this.marketData.push(newData);
@@ -95,7 +130,8 @@ export class MarketDataService {
     const updatedData = {
       ...this.marketData[index],
       ...data,
-      lastUpdated: new Date()
+      lastUpdated: new Date(),
+      data: data.data ?? this.marketData[index].data ?? [] // Ensure data is present
     };
     
     this.marketData[index] = updatedData;

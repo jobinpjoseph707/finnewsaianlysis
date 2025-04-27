@@ -22,7 +22,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Market Data API
   app.get("/api/market-data", async (req, res) => {
     try {
-      const data = await storage.getAllMarketData();
+      const data = await marketDataService.getMarketData();
       res.json(data);
     } catch (error) {
       console.error("Error fetching market data:", error);
@@ -49,7 +49,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/market-data/symbol/:symbol", async (req, res) => {
     try {
       const symbol = req.params.symbol;
-      const data = await storage.getMarketDataBySymbol(symbol);
+      const data = await marketDataService.getMarketDataBySymbol(symbol);
       
       if (!data) {
         return res.status(404).json({ message: `Market data for ${symbol} not found` });

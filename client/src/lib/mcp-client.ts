@@ -2,7 +2,7 @@ import { apiRequest } from "./queryClient";
 import { Strategy, MarketData, SentimentData, PerformanceData } from "./types";
 
 // Base URL for API requests
-const API_BASE = "/api";
+const API_BASE = import.meta.env.VITE_API_URL || "/api";
 
 // MCP Client for interacting with the MCP server
 export class MCPClient {
